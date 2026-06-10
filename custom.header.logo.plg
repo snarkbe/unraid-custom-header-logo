@@ -2,7 +2,7 @@
 
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.header.logo">
-<!ENTITY author    "Gilles">
+<!ENTITY author    "Gilles Reichert">
 <!ENTITY version   "2026.06.10">
 <!ENTITY launch    "Settings/CustomHeaderLogo">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
@@ -49,8 +49,7 @@ How it works:
 <![CDATA[
 Menu="UserPreferences"
 Title="Custom Header Logo"
-Icon="icon-image"
-Tag="image"
+Icon="custom.header.logo.svg"
 ---
 <?php
 /* Custom Header Logo - replace the Unraid logo and its link in the top banner.
@@ -117,6 +116,15 @@ _(Keep Unraid version text next to logo)_:
 </form>
 
 <p><em>Changes take effect after a page refresh. Settings are stored on the flash drive and re-applied automatically at every boot.</em></p>
+]]>
+</INLINE>
+</FILE>
+
+<!-- Tile icon shown under Settings > User Preferences (MDI image-minus-outline) -->
+<FILE Name="&emhttp;/custom.header.logo.svg">
+<INLINE>
+<![CDATA[
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M15.4 14.21C14.47 14.91 13.75 15.88 13.35 17H6.5L9.25 13.47L11.21 15.83L13.96 12.29L15.4 14.21M5 19V5H19V13C19.7 13 20.37 13.13 21 13.35V5C21 3.9 20.11 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.11 3.9 21 5 21H13.35C13.13 20.37 13 19.7 13 19H5M15 18V20H23V18H15Z" /></svg>
 ]]>
 </INLINE>
 </FILE>
