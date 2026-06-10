@@ -1,0 +1,253 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "custom.header.logo">
+<!ENTITY author    "Gilles">
+<!ENTITY version   "2026.06.10">
+<!ENTITY launch    "Settings/CustomHeaderLogo">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
+<!ENTITY pluginURL "&gitURL;/custom.header.logo.plg">
+<!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
+<!ENTITY flash     "/boot/config/plugins/&name;">
+]>
+
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        launch="&launch;"
+        pluginURL="&pluginURL;"
+        support="https://forums.unraid.net/"
+        icon="image"
+        min="7.0.0">
+
+<CHANGES>
+###2026.06.10
+- Initial release.
+- Replace the Unraid logo in the top banner with a custom image.
+- Configure the URL the logo points to.
+- Adjustable logo height, optional new-tab behavior, optional version text.
+- No Unraid OS files are patched: uses the webGUI Buttons page hook, survives OS updates.
+</CHANGES>
+
+<!--
+Custom Header Logo
+Replaces the Unraid logo in the top banner (and the link it points to)
+with a user-defined image and URL.
+
+How it works:
+- Settings page under Settings > User Preferences > Custom Header Logo.
+- Config stored at &flash;/custom.header.logo.cfg (persists on flash).
+- A hidden Menu="Buttons" page is evaluated in the head of every webGUI page;
+  it hides the stock <unraid-header-os-version> web component and inserts a
+  custom <a><img></a> at the left of the #header banner.
+- Nothing under /usr/local/emhttp outside this plugin folder is modified.
+-->
+
+<!-- Settings page -->
+<FILE Name="&emhttp;/CustomHeaderLogo.page">
+<INLINE>
+<![CDATA[
+Menu="UserPreferences"
+Title="Custom Header Logo"
+Icon="icon-image"
+Tag="image"
+---
+<?php
+/* Custom Header Logo - replace the Unraid logo and its link in the top banner.
+ * Settings are stored on the flash drive and survive reboots and OS updates.
+ */
+$chl_cfg_file = '/boot/config/plugins/custom.header.logo/custom.header.logo.cfg';
+$chl_cfg = is_file($chl_cfg_file) ? (parse_ini_file($chl_cfg_file) ?: []) : [];
+$chl_service = $chl_cfg['SERVICE']     ?? 'disabled';
+$chl_logourl = $chl_cfg['LOGOURL']     ?? '';
+$chl_linkurl = $chl_cfg['LINKURL']     ?? '';
+$chl_height  = $chl_cfg['HEIGHT']      ?? '28';
+$chl_newtab  = $chl_cfg['NEWTAB']      ?? '0';
+$chl_showver = $chl_cfg['SHOWVERSION'] ?? '1';
+?>
+
+<form markdown="1" name="custom_header_logo" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="custom.header.logo/custom.header.logo.cfg"/>
+
+_(Enable custom logo)_:
+: <select name="SERVICE">
+  <?=mk_option($chl_service, "disabled", _('No'))?>
+  <?=mk_option($chl_service, "enabled", _('Yes'))?>
+  </select>
+
+> Set to **Yes** to replace the stock Unraid logo in the top banner. Set to **No** to restore the original logo (refresh the page after applying).
+
+_(Logo image URL)_:
+: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com/logo.png or /boot/config/plugins/custom.header.logo/logo.png">
+
+> URL of the image to display. PNG or SVG with a **transparent background** is recommended.
+> **Suggested size: 320 x 56 px** (displayed at 160 x 28 px, matching the stock logo). Any image with a roughly 5.7:1 width/height ratio will look native; the height set below constrains it.
+> You can also store the image on the flash drive (e.g. `/boot/config/plugins/custom.header.logo/logo.png`) and reference it as `/plugins/custom.header.logo/logo.png` after copying it into the plugin folder, or use any reachable http(s) URL.
+
+_(Logo links to)_:
+: <input type="text" name="LINKURL" value="<?=htmlspecialchars($chl_linkurl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com (empty = /Dashboard)">
+
+> The page opened when the logo is clicked. Leave empty to link to the server Dashboard.
+
+_(Logo height in pixels)_:
+: <input type="number" name="HEIGHT" value="<?=htmlspecialchars($chl_height, ENT_QUOTES)?>" min="12" max="80" style="width:80px">
+
+> Displayed height of the logo. Default **28** (stock logo height). Width scales automatically. The banner is 90 px tall, so values above 80 are clamped.
+
+_(Open link in a new tab)_:
+: <select name="NEWTAB">
+  <?=mk_option($chl_newtab, "0", _('No'))?>
+  <?=mk_option($chl_newtab, "1", _('Yes'))?>
+  </select>
+
+_(Keep Unraid version text next to logo)_:
+: <select name="SHOWVERSION">
+  <?=mk_option($chl_showver, "0", _('No'))?>
+  <?=mk_option($chl_showver, "1", _('Yes'))?>
+  </select>
+
+> The stock logo component also displays the OS version. Hiding it removes that text; this option re-adds a small version label next to your custom logo.
+
+&nbsp;
+: <span class="inline-block">
+  <input type="submit" name="#apply" value="_(Apply)_" disabled>
+  <input type="button" value="_(Done)_" onclick="done()">
+</span>
+
+</form>
+
+<p><em>Changes take effect after a page refresh. Settings are stored on the flash drive and re-applied automatically at every boot.</em></p>
+]]>
+</INLINE>
+</FILE>
+
+<!-- Global hook page (evaluated on every webGUI page, renders no visible button) -->
+<FILE Name="&emhttp;/CustomHeaderLogoHook.page">
+<INLINE>
+<![CDATA[
+Menu="Buttons:99"
+Link="custom-header-logo-hook"
+Title="CustomHeaderLogoHook"
+---
+<?php
+/* Custom Header Logo - global hook.
+ * Pages with Menu="Buttons" are evaluated inside <head> on every webGUI page.
+ * The Link attribute prevents a visible button from being rendered in the nav bar.
+ * No Unraid OS file is patched: this survives OS updates by design.
+ */
+$chl_cfg_file = '/boot/config/plugins/custom.header.logo/custom.header.logo.cfg';
+$chl_cfg = is_file($chl_cfg_file) ? (parse_ini_file($chl_cfg_file) ?: []) : [];
+if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && !empty($chl_cfg['LOGOURL'])):
+  $chl_logo   = $chl_cfg['LOGOURL'];
+  $chl_link   = !empty($chl_cfg['LINKURL']) ? $chl_cfg['LINKURL'] : '/Dashboard';
+  $chl_height = max(12, min(80, (int)($chl_cfg['HEIGHT'] ?? 28)));
+  $chl_target = (($chl_cfg['NEWTAB'] ?? '0') === '1') ? '_blank' : '_self';
+  $chl_ver    = '';
+  if (($chl_cfg['SHOWVERSION'] ?? '1') === '1') {
+    $chl_osver = is_file('/etc/unraid-version') ? (parse_ini_file('/etc/unraid-version') ?: []) : [];
+    $chl_ver = $chl_osver['version'] ?? '';
+  }
+?>
+<style>
+#header unraid-header-os-version { display: none !important; }
+#chl-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+#chl-logo img {
+  height: <?=$chl_height?>px;
+  width: auto;
+  display: block;
+}
+#chl-logo .chl-version {
+  font-size: 12px;
+  color: var(--header-text-secondary, var(--inverse-text-color, #999));
+  white-space: nowrap;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var header = document.getElementById('header');
+  if (!header || document.getElementById('chl-logo')) return;
+  var a = document.createElement('a');
+  a.id = 'chl-logo';
+  a.href = <?=json_encode($chl_link)?>;
+  a.target = <?=json_encode($chl_target)?>;
+  if (a.target === '_blank') a.rel = 'noopener noreferrer';
+  var img = document.createElement('img');
+  img.src = <?=json_encode($chl_logo)?>;
+  img.alt = 'logo';
+  a.appendChild(img);
+  var ver = <?=json_encode($chl_ver)?>;
+  if (ver) {
+    var span = document.createElement('span');
+    span.className = 'chl-version';
+    span.textContent = 'Version: ' + ver;
+    a.appendChild(span);
+  }
+  header.insertBefore(a, header.firstChild);
+});
+</script>
+<?php endif; ?>
+]]>
+</INLINE>
+</FILE>
+
+<!-- README shown by the plugin manager -->
+<FILE Name="&emhttp;/README.md">
+<INLINE>
+<![CDATA[
+**Custom Header Logo**
+
+Replace the Unraid logo in the top banner with your own image and choose the URL it links to. Configure it under Settings > User Preferences > Custom Header Logo. Suggested image size: 320x56 px (PNG/SVG, transparent background), displayed at 160x28 px like the stock logo.
+]]>
+</INLINE>
+</FILE>
+
+<!-- Post-install: create default config on flash if missing -->
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+CFG_DIR="/boot/config/plugins/custom.header.logo"
+CFG="$CFG_DIR/custom.header.logo.cfg"
+mkdir -p "$CFG_DIR"
+if [ ! -f "$CFG" ]; then
+  cat > "$CFG" <<'EOF'
+SERVICE="disabled"
+LOGOURL=""
+LINKURL=""
+HEIGHT="28"
+NEWTAB="0"
+SHOWVERSION="1"
+EOF
+fi
+echo ""
+echo "----------------------------------------------------"
+echo " custom.header.logo has been installed."
+echo " Configure it: Settings > User Preferences"
+echo "               > Custom Header Logo"
+echo " Suggested logo size: 320x56 px (shown at 160x28)"
+echo "----------------------------------------------------"
+echo ""
+]]>
+</INLINE>
+</FILE>
+
+<!-- Uninstall -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+rm -rf /usr/local/emhttp/plugins/custom.header.logo
+rm -rf /boot/config/plugins/custom.header.logo
+echo "custom.header.logo removed. Refresh the webGUI to restore the stock logo."
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
