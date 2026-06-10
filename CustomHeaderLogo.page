@@ -1,0 +1,69 @@
+Menu="UserPreferences"
+Title="Custom Header Logo"
+Icon="image"
+---
+<?php
+/* Custom Header Logo - replace the Unraid logo and its link in the top banner.
+ * Settings are stored on the flash drive and survive reboots and OS updates.
+ */
+$chl_cfg_file = '/boot/config/plugins/custom.header.logo/custom.header.logo.cfg';
+$chl_cfg = is_file($chl_cfg_file) ? (parse_ini_file($chl_cfg_file) ?: []) : [];
+$chl_service = $chl_cfg['SERVICE']     ?? 'disabled';
+$chl_logourl = $chl_cfg['LOGOURL']     ?? '';
+$chl_linkurl = $chl_cfg['LINKURL']     ?? '';
+$chl_height  = $chl_cfg['HEIGHT']      ?? '28';
+$chl_newtab  = $chl_cfg['NEWTAB']      ?? '0';
+$chl_showver = $chl_cfg['SHOWVERSION'] ?? '1';
+?>
+
+<form markdown="1" name="custom_header_logo" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="custom.header.logo/custom.header.logo.cfg"/>
+
+_(Enable custom logo)_:
+: <select name="SERVICE">
+  <?=mk_option($chl_service, "disabled", _('No'))?>
+  <?=mk_option($chl_service, "enabled", _('Yes'))?>
+  </select>
+
+> Set to **Yes** to replace the stock Unraid logo in the top banner. Set to **No** to restore the original logo (refresh the page after applying).
+
+_(Logo image URL)_:
+: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com/logo.png or /boot/config/plugins/custom.header.logo/logo.png">
+
+> URL of the image to display. PNG or SVG with a **transparent background** is recommended.
+> **Suggested size: 320 x 56 px** (displayed at 160 x 28 px, matching the stock logo). Any image with a roughly 5.7:1 width/height ratio will look native; the height set below constrains it.
+> You can also store the image on the flash drive (e.g. `/boot/config/plugins/custom.header.logo/logo.png`) and reference it as `/plugins/custom.header.logo/logo.png` after copying it into the plugin folder, or use any reachable http(s) URL.
+
+_(Logo links to)_:
+: <input type="text" name="LINKURL" value="<?=htmlspecialchars($chl_linkurl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com (empty = /Dashboard)">
+
+> The page opened when the logo is clicked. Leave empty to link to the server Dashboard.
+
+_(Logo height in pixels)_:
+: <input type="number" name="HEIGHT" value="<?=htmlspecialchars($chl_height, ENT_QUOTES)?>" min="12" max="80" style="width:80px">
+
+> Displayed height of the logo. Default **28** (stock logo height). Width scales automatically. The banner is 90 px tall, so values above 80 are clamped.
+
+_(Open link in a new tab)_:
+: <select name="NEWTAB">
+  <?=mk_option($chl_newtab, "0", _('No'))?>
+  <?=mk_option($chl_newtab, "1", _('Yes'))?>
+  </select>
+
+_(Keep Unraid version text next to logo)_:
+: <select name="SHOWVERSION">
+  <?=mk_option($chl_showver, "0", _('No'))?>
+  <?=mk_option($chl_showver, "1", _('Yes'))?>
+  </select>
+
+> The stock logo component also displays the OS version. Hiding it removes that text; this option re-adds a small version label next to your custom logo.
+
+&nbsp;
+: <span class="inline-block">
+  <input type="submit" name="#apply" value="_(Apply)_" disabled>
+  <input type="button" value="_(Done)_" onclick="done()">
+</span>
+
+</form>
+
+<p><em>Changes take effect after a page refresh. Settings are stored on the flash drive and re-applied automatically at every boot.</em></p>
