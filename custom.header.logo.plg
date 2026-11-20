@@ -3,16 +3,16 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.header.logo">
 <!ENTITY author    "Gilles Reichert">
-<!ENTITY version   "2026.11.21">
+<!ENTITY version   "2026.11.20c">
 <!ENTITY launch    "Settings/CustomHeaderLogo">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
 <!ENTITY pluginURL "&gitURL;/custom.header.logo.plg">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!-- MD5 of the downloaded files: keep in sync with ./update-md5.sh after any change -->
-<!ENTITY md5page   "15ae8b5aac6c80c44815864f6efc8ce9">
+<!ENTITY md5page   "0b4dd7424cc082d6d71d795847a7ecf2">
 <!ENTITY md5logo   "e47302e60345b4a927e6ef123b6d7f51">
-<!ENTITY md5upld   "0657d83bf551cd0d079ea2db0c231a5d">
+<!ENTITY md5upld   "905a00b4be4b9563e246ac2f1a9889da">
 <!ENTITY md5hook   "f47c96c9d795e96ee2e3910d58e466b5">
 ]>
 
@@ -26,7 +26,7 @@
         min="7.0.0">
 
 <CHANGES>
-###2026.11.21
+###2026.11.20c
 - New: upload the logo from your computer in the settings page (stored on the flash drive),
   with a preview and a Delete button. PNG, SVG, WebP, JPG or GIF, max 512 KB.
 
