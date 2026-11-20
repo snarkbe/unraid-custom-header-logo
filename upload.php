@@ -1,8 +1,9 @@
 <?php
 /* Custom Header Logo - upload or delete the logo stored on the flash drive.
  * POST cmd=upload (multipart field "logo") or cmd=delete.
- * The webGUI's local_prepend.php already rejects POSTs without a valid csrf_token;
- * the X-CSRF-Token header is checked here again as a second line of defense.
+ * CSRF: the webGUI's auto-prepended local_prepend.php rejects every POST without a
+ * valid csrf_token, then strips the token from $_POST and $_SERVER, so it cannot be
+ * re-checked here.
  */
 header('Content-Type: application/json');
 
@@ -16,12 +17,6 @@ $exts  = ['svg', 'png', 'webp', 'jpg', 'jpeg', 'gif'];
 $limit = 512 * 1024;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') chl_reply(405, ['error' => 'POST required']);
-
-$var = @parse_ini_file('/var/local/emhttp/var.ini') ?: [];
-$token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (empty($var['csrf_token']) || !is_string($token) || !hash_equals($var['csrf_token'], $token)) {
-  chl_reply(403, ['error' => 'Invalid CSRF token']);
-}
 
 function chl_clear($dir, $exts) {
   foreach ($exts as $e) @unlink("$dir/logo.$e");

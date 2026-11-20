@@ -10,9 +10,9 @@
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!-- MD5 of the downloaded files: keep in sync with ./update-md5.sh after any change -->
-<!ENTITY md5page   "15ae8b5aac6c80c44815864f6efc8ce9">
+<!ENTITY md5page   "b2c08eb4ba8e32bf18151d140e385dcb">
 <!ENTITY md5logo   "e47302e60345b4a927e6ef123b6d7f51">
-<!ENTITY md5upld   "0657d83bf551cd0d079ea2db0c231a5d">
+<!ENTITY md5upld   "0aa853fa8494f18f07f96ad5f828b6e8">
 <!ENTITY md5hook   "f47c96c9d795e96ee2e3910d58e466b5">
 ]>
 

@@ -104,14 +104,24 @@ _(Open link in a new tab)_:
     return false;
   }
 
-  function post(data) {
-    data.append('csrf_token', csrf_token);
-    return fetch('/plugins/custom.header.logo/upload.php', {
-      method: 'POST', body: data, credentials: 'same-origin',
-      headers: { 'X-CSRF-Token': csrf_token }
-    }).then(function(r) {
-      return r.json().catch(function() { return { error: 'HTTP ' + r.status }; });
-    });
+  // Same transport as the rest of the webGUI (jQuery), with a timeout so a request
+  // can never hang silently: every outcome ends with a message.
+  function post(data, done) {
+    try {
+      data.append('csrf_token', csrf_token);
+      $.ajax({
+        url: '/plugins/custom.header.logo/upload.php',
+        type: 'POST', data: data, processData: false, contentType: false,
+        dataType: 'json', timeout: 30000
+      }).done(function(res) {
+        done(res || { error: 'Empty response' });
+      }).fail(function(xhr, status, err) {
+        var res = xhr.responseJSON;
+        done({ error: (res && res.error) || ('HTTP ' + xhr.status + ' ' + (err || status)) });
+      });
+    } catch (e) {
+      done({ error: 'Error: ' + e.message });
+    }
   }
 
   document.getElementById('chl-upload').addEventListener('click', function() { file.click(); });
@@ -126,19 +136,19 @@ _(Open link in a new tab)_:
     data.append('cmd', 'upload');
     data.append('logo', f);
     say('Uploading...', true);
-    post(data).then(function(res) {
+    post(data, function(res) {
       if (res.ok) say('Saved as ' + res.file + '.' + (show(res.v) ? '' : ' Refresh the page to see it in the banner.'), true);
       else say(res.error || 'Upload failed', false);
-    }).catch(function() { say('Upload failed', false); });
+    });
   });
 
   del.addEventListener('click', function() {
     var data = new FormData();
     data.append('cmd', 'delete');
-    post(data).then(function(res) {
+    post(data, function(res) {
       if (res.ok) { show(0); say('Logo deleted. Refresh the page to update the banner.', true); }
       else say(res.error || 'Delete failed', false);
-    }).catch(function() { say('Delete failed', false); });
+    });
   });
 })();
 </script>
