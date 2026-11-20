@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.header.logo">
 <!ENTITY author    "Gilles Reichert">
-<!ENTITY version   "2026.11.21">
+<!ENTITY version   "2026.11.20a">
 <!ENTITY launch    "Settings/CustomHeaderLogo">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
 <!ENTITY pluginURL "&gitURL;/custom.header.logo.plg">
@@ -26,7 +26,7 @@
         min="7.0.0">
 
 <CHANGES>
-###2026.11.21
+###2026.11.20a
 - New: upload the logo from your computer in the settings page (stored on the flash drive),
   with a preview and a Delete button. PNG, SVG, WebP, JPG or GIF, max 512 KB.
 
