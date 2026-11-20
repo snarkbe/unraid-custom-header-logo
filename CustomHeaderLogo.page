@@ -13,7 +13,6 @@ $chl_logourl = $chl_cfg['LOGOURL']     ?? '';
 $chl_linkurl = $chl_cfg['LINKURL']     ?? '';
 $chl_height  = $chl_cfg['HEIGHT']      ?? '28';
 $chl_newtab  = $chl_cfg['NEWTAB']      ?? '0';
-$chl_showver = $chl_cfg['SHOWVERSION'] ?? '1';
 ?>
 
 <form markdown="1" name="custom_header_logo" method="POST" action="/update.php" target="progressFrame">
@@ -50,13 +49,7 @@ _(Open link in a new tab)_:
   <?=mk_option($chl_newtab, "1", _('Yes'))?>
   </select>
 
-_(Keep Unraid version text next to logo)_:
-: <select name="SHOWVERSION">
-  <?=mk_option($chl_showver, "0", _('No'))?>
-  <?=mk_option($chl_showver, "1", _('Yes'))?>
-  </select>
-
-> The stock logo component also displays the OS version. Hiding it removes that text; this option re-adds a small version label next to your custom logo.
+> Only the logo is replaced: the Unraid version and update indicator next to it are kept.
 
 &nbsp;
 : <span class="inline-block">

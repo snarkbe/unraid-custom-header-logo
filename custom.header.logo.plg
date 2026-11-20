@@ -3,12 +3,15 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.header.logo">
 <!ENTITY author    "Gilles Reichert">
-<!ENTITY version   "2026.06.10">
+<!ENTITY version   "2026.11.20">
 <!ENTITY launch    "Settings/CustomHeaderLogo">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
 <!ENTITY pluginURL "&gitURL;/custom.header.logo.plg">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
+<!-- MD5 of the downloaded files: keep in sync with ./update-md5.sh after any change -->
+<!ENTITY md5page   "eb0d398808a5c777d470c9f45f5c3063">
+<!ENTITY md5hook   "027237ebe638d98b61ec56020f75420d">
 ]>
 
 <PLUGIN name="&name;"
@@ -21,6 +24,15 @@
         min="7.0.0">
 
 <CHANGES>
+###2026.11.20
+- Fix: works on Unraid 7.0 to 7.4. The stock logo link is now targeted directly instead of the
+  version component, which no longer holds the logo on 7.0/7.1 and no longer exists on 7.4.
+- The custom logo takes the exact place of the stock one; the native version and update
+  indicator are kept, so the "Keep version text" option was removed.
+- Fix: plugin updates now really replace the installed files (old files are removed first,
+  downloads are MD5-checked).
+- Files are cached on the flash drive: the plugin installs at boot without network access.
+
 ###2026.06.10
 - Initial release.
 - Replace the Unraid logo in the top banner with a custom image.
@@ -38,19 +50,33 @@ How it works:
 - Settings page under Settings > User Preferences > Custom Header Logo.
 - Config stored at &flash;/custom.header.logo.cfg (persists on flash).
 - A hidden Menu="Buttons" page is evaluated in the head of every webGUI page;
-  it hides the stock <unraid-header-os-version> web component and inserts a
-  custom <a><img></a> at the left of the #header banner.
+  it hides the stock <a href="https://unraid.net"> logo link in the #header
+  banner and inserts a custom <a><img></a> in its place.
 - Nothing under /usr/local/emhttp outside this plugin folder is modified.
+
+Install flow:
+- The plugin manager never overwrites an existing file, so the RAM copy is wiped first.
+- Page files are downloaded to the flash drive (MD5-checked: re-downloaded only when
+  they change), then copied into the webGUI. At boot they come from flash, no network needed.
 -->
 
-<!-- Settings page -->
-<FILE Name="&emhttp;/CustomHeaderLogo.page">
-<URL>&gitURL;/CustomHeaderLogo.page</URL>
+<!-- Pre-install: remove the previous RAM copy so an update replaces every file -->
+<FILE Run="/bin/bash">
+<INLINE>
+rm -rf &emhttp;
+</INLINE>
 </FILE>
 
-<!-- Global hook page (evaluated on every webGUI page, renders no visible button) -->
-<FILE Name="&emhttp;/CustomHeaderLogoHook.page">
+<!-- Settings page (cached on flash) -->
+<FILE Name="&flash;/CustomHeaderLogo.page">
+<URL>&gitURL;/CustomHeaderLogo.page</URL>
+<MD5>&md5page;</MD5>
+</FILE>
+
+<!-- Global hook page, evaluated on every webGUI page, renders no visible button (cached on flash) -->
+<FILE Name="&flash;/CustomHeaderLogoHook.page">
 <URL>&gitURL;/CustomHeaderLogoHook.page</URL>
+<MD5>&md5hook;</MD5>
 </FILE>
 
 <!-- README shown by the plugin manager -->
@@ -64,14 +90,16 @@ Replace the Unraid logo in the top banner with your own image and choose the URL
 </INLINE>
 </FILE>
 
-<!-- Post-install: create default config on flash if missing -->
+<!-- Post-install: copy pages into the webGUI, create default config on flash if missing -->
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
 #!/bin/bash
-CFG_DIR="/boot/config/plugins/custom.header.logo"
-CFG="$CFG_DIR/custom.header.logo.cfg"
-mkdir -p "$CFG_DIR"
+FLASH="/boot/config/plugins/custom.header.logo"
+EMHTTP="/usr/local/emhttp/plugins/custom.header.logo"
+CFG="$FLASH/custom.header.logo.cfg"
+mkdir -p "$FLASH" "$EMHTTP"
+cp -f "$FLASH/CustomHeaderLogo.page" "$FLASH/CustomHeaderLogoHook.page" "$EMHTTP/" || exit 1
 if [ ! -f "$CFG" ]; then
   cat > "$CFG" <<'EOF'
 SERVICE="disabled"
@@ -79,7 +107,6 @@ LOGOURL=""
 LINKURL=""
 HEIGHT="28"
 NEWTAB="0"
-SHOWVERSION="1"
 EOF
 fi
 echo ""
