@@ -13,7 +13,10 @@ $chl_logourl = $chl_cfg['LOGOURL']     ?? '';
 $chl_linkurl = $chl_cfg['LINKURL']     ?? '';
 $chl_height  = $chl_cfg['HEIGHT']      ?? '28';
 $chl_newtab  = $chl_cfg['NEWTAB']      ?? '0';
-$chl_showver = $chl_cfg['SHOWVERSION'] ?? '1';
+$chl_flash   = '';
+foreach (['svg','png','webp','jpg','jpeg','gif'] as $chl_ext) {
+  if (is_file("/boot/config/plugins/custom.header.logo/logo.$chl_ext")) { $chl_flash = "logo.$chl_ext"; break; }
+}
 ?>
 
 <form markdown="1" name="custom_header_logo" method="POST" action="/update.php" target="progressFrame">
@@ -28,11 +31,13 @@ _(Enable custom logo)_:
 > Set to **Yes** to replace the stock Unraid logo in the top banner. Set to **No** to restore the original logo (refresh the page after applying).
 
 _(Logo image URL)_:
-: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com/logo.png or /boot/config/plugins/custom.header.logo/logo.png">
+: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="<?=$chl_flash ? htmlspecialchars("empty = $chl_flash on flash", ENT_QUOTES) : 'https://example.com/logo.png (empty = logo on flash)'?>">
+  <?if ($chl_flash):?><span class="green-text">&nbsp;<?=_('Flash logo found')?>: <?=htmlspecialchars($chl_flash)?></span><?endif;?>
 
 > URL of the image to display. PNG or SVG with a **transparent background** is recommended.
 > **Suggested size: 320 x 56 px** (displayed at 160 x 28 px, matching the stock logo). Any image with a roughly 5.7:1 width/height ratio will look native; the height set below constrains it.
-> You can also store the image on the flash drive (e.g. `/boot/config/plugins/custom.header.logo/logo.png`) and reference it as `/plugins/custom.header.logo/logo.png` after copying it into the plugin folder, or use any reachable http(s) URL.
+> **Leave empty to use a logo stored on the flash drive:** copy `logo.svg`, `logo.png`, `logo.webp`, `logo.jpg` or `logo.gif` into `/boot/config/plugins/custom.header.logo/` (on the `flash` share: `config/plugins/custom.header.logo/`). It survives reboots and plugin updates.
+> Otherwise enter any http(s) URL. If the webGUI uses HTTPS, the image URL must be HTTPS too, or the browser blocks it.
 
 _(Logo links to)_:
 : <input type="text" name="LINKURL" value="<?=htmlspecialchars($chl_linkurl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com (empty = /Dashboard)">
@@ -50,13 +55,7 @@ _(Open link in a new tab)_:
   <?=mk_option($chl_newtab, "1", _('Yes'))?>
   </select>
 
-_(Keep Unraid version text next to logo)_:
-: <select name="SHOWVERSION">
-  <?=mk_option($chl_showver, "0", _('No'))?>
-  <?=mk_option($chl_showver, "1", _('Yes'))?>
-  </select>
-
-> The stock logo component also displays the OS version. Hiding it removes that text; this option re-adds a small version label next to your custom logo.
+> Only the logo is replaced: the Unraid version and update indicator next to it are kept.
 
 &nbsp;
 : <span class="inline-block">

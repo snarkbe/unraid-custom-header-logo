@@ -2,54 +2,58 @@ Menu="Buttons:99"
 Link="custom-header-logo-hook"
 Title="CustomHeaderLogoHook"
 ---
-<!-- Tile icon for the "Custom Header Logo" entry under Settings > User Preferences.
-     The settings page uses Icon="icon-chl"; Unraid's bundled icon font has no glyph
-     for it, so we paint the MDI "image-minus-outline" icon as a CSS mask. Using
-     background-color:currentColor makes it follow the active theme like stock glyphs. -->
-<style>
-.icon-chl::before {
-  content: "" !important;
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
-  background-color: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.4 14.21C14.47 14.91 13.75 15.88 13.35 17H6.5L9.25 13.47L11.21 15.83L13.96 12.29L15.4 14.21M5 19V5H19V13C19.7 13 20.37 13.13 21 13.35V5C21 3.9 20.11 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.11 3.9 21 5 21H13.35C13.13 20.37 13 19.7 13 19H5M15 18V20H23V18H15Z'/%3E%3C/svg%3E") center / contain no-repeat;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.4 14.21C14.47 14.91 13.75 15.88 13.35 17H6.5L9.25 13.47L11.21 15.83L13.96 12.29L15.4 14.21M5 19V5H19V13C19.7 13 20.37 13.13 21 13.35V5C21 3.9 20.11 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.11 3.9 21 5 21H13.35C13.13 20.37 13 19.7 13 19H5M15 18V20H23V18H15Z'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-</style>
 <?php
 /* Custom Header Logo - global hook.
  * Pages with Menu="Buttons" are evaluated inside <head> on every webGUI page.
  * The Link attribute prevents a visible button from being rendered in the nav bar.
  * No Unraid OS file is patched: this survives OS updates by design.
+ *
+ * Where the stock logo lives depends on the Unraid release:
+ *   7.0 - 7.1  #header .logo > a[href="https://unraid.net"] (version is a sibling component)
+ *   7.2 - 7.3  inside <unraid-header-os-version>, together with the version
+ *   7.4+       inside <unraid-header> (server-rendered placeholder, then the mounted Vue app)
+ * The one constant is the <a href="https://unraid.net"> wrapping the logo, so we hide
+ * that link and insert ours right next to it, in the same parent. The native version
+ * and update indicator stay untouched. A MutationObserver re-applies the swap when
+ * the Vue header mounts or re-renders.
+ * Fallback: if the header component renders in an (open) shadow root, the link is not
+ * reachable, so the whole component is hidden and our logo + version is shown instead.
  */
 $chl_cfg_file = '/boot/config/plugins/custom.header.logo/custom.header.logo.cfg';
 $chl_cfg = is_file($chl_cfg_file) ? (parse_ini_file($chl_cfg_file) ?: []) : [];
-if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && !empty($chl_cfg['LOGOURL'])):
-  $chl_logo   = $chl_cfg['LOGOURL'];
+// Empty LOGOURL = use the logo stored on flash, served by logo.php (same lookup order).
+$chl_logo = $chl_cfg['LOGOURL'] ?? '';
+if ($chl_logo === '') {
+  foreach (['svg','png','webp','jpg','jpeg','gif'] as $chl_ext) {
+    $chl_flash = "/boot/config/plugins/custom.header.logo/logo.$chl_ext";
+    if (is_file($chl_flash)) { $chl_logo = '/plugins/custom.header.logo/logo.php?v='.filemtime($chl_flash); break; }
+  }
+}
+if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && $chl_logo !== ''):
   $chl_link   = !empty($chl_cfg['LINKURL']) ? $chl_cfg['LINKURL'] : '/Dashboard';
   $chl_height = max(12, min(80, (int)($chl_cfg['HEIGHT'] ?? 28)));
   $chl_target = (($chl_cfg['NEWTAB'] ?? '0') === '1') ? '_blank' : '_self';
-  $chl_ver    = '';
-  if (($chl_cfg['SHOWVERSION'] ?? '1') === '1') {
-    $chl_osver = is_file('/etc/unraid-version') ? (parse_ini_file('/etc/unraid-version') ?: []) : [];
-    $chl_ver = $chl_osver['version'] ?? '';
-  }
+  $chl_osver  = is_file('/etc/unraid-version') ? (parse_ini_file('/etc/unraid-version') ?: []) : [];
+  $chl_ver    = $chl_osver['version'] ?? '';
 ?>
 <style>
-#header unraid-header-os-version { display: none !important; }
+#header a[href="https://unraid.net"]:not(#chl-logo),
+#header a[href="https://unraid.net/"]:not(#chl-logo) { display: none !important; }
+#header.chl-shadow unraid-header-os-version { display: none !important; }
 #chl-logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-left: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
   text-decoration: none;
   flex-shrink: 0;
 }
 #chl-logo img {
   height: <?=$chl_height?>px;
   width: auto;
+  max-width: 100%;
   display: block;
 }
 #chl-logo .chl-version {
@@ -57,28 +61,81 @@ if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && !empty($chl_cfg['LOGOUR
   color: var(--header-text-secondary, var(--inverse-text-color, #999));
   white-space: nowrap;
 }
+#header.chl-shadow #chl-logo { align-self: center; margin-left: 10px; }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  var header = document.getElementById('header');
-  if (!header || document.getElementById('chl-logo')) return;
-  var a = document.createElement('a');
-  a.id = 'chl-logo';
-  a.href = <?=json_encode($chl_link)?>;
-  a.target = <?=json_encode($chl_target)?>;
-  if (a.target === '_blank') a.rel = 'noopener noreferrer';
-  var img = document.createElement('img');
-  img.src = <?=json_encode($chl_logo)?>;
-  img.alt = 'logo';
-  a.appendChild(img);
-  var ver = <?=json_encode($chl_ver)?>;
-  if (ver) {
-    var span = document.createElement('span');
-    span.className = 'chl-version';
-    span.textContent = 'Version: ' + ver;
-    a.appendChild(span);
+(function() {
+  var STOCK = 'a[href="https://unraid.net"]:not(#chl-logo), a[href="https://unraid.net/"]:not(#chl-logo)';
+  var logo = null;
+
+  function build() {
+    var a = document.createElement('a');
+    a.id = 'chl-logo';
+    a.href = <?=json_encode($chl_link)?>;
+    a.target = <?=json_encode($chl_target)?>;
+    if (a.target === '_blank') a.rel = 'noopener noreferrer';
+    var img = document.createElement('img');
+    img.src = <?=json_encode($chl_logo)?>;
+    img.alt = 'logo';
+    a.appendChild(img);
+    return a;
   }
-  header.insertBefore(a, header.firstChild);
-});
+
+  function setVersion(show) {
+    var span = logo.querySelector('.chl-version');
+    var ver = <?=json_encode($chl_ver)?>;
+    if (show && ver && !span) {
+      span = document.createElement('span');
+      span.className = 'chl-version';
+      span.textContent = 'Version: ' + ver;
+      logo.appendChild(span);
+    } else if (!show && span) {
+      span.remove();
+    }
+  }
+
+  function apply() {
+    var header = document.getElementById('header');
+    if (!header) return;
+    if (!logo) logo = build();
+    var stock = header.querySelector(STOCK);
+    if (stock) {
+      // Normal case: sit exactly where the stock logo is.
+      header.classList.remove('chl-shadow');
+      setVersion(false);
+      if (stock.previousSibling !== logo) stock.parentNode.insertBefore(logo, stock);
+      return;
+    }
+    var comp = header.querySelector('unraid-header-os-version');
+    if (comp && comp.shadowRoot) {
+      // Logo is unreachable inside a shadow root: hide the component, show ours + version.
+      header.classList.add('chl-shadow');
+      setVersion(true);
+      if (comp.previousSibling !== logo) comp.parentNode.insertBefore(logo, comp);
+    }
+    // Otherwise the header has not rendered its logo yet: the observer will call us again.
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function() { queued = false; apply(); });
+  }
+
+  function start() {
+    var header = document.getElementById('header');
+    if (!header) return;
+    apply();
+    new MutationObserver(schedule).observe(header, { childList: true, subtree: true });
+    // Custom elements attach their shadow root without a childList mutation on #header.
+    if (window.customElements) {
+      customElements.whenDefined('unraid-header-os-version').then(schedule);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
 </script>
 <?php endif; ?>
