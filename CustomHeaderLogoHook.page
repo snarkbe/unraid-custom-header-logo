@@ -21,8 +21,15 @@ Title="CustomHeaderLogoHook"
  */
 $chl_cfg_file = '/boot/config/plugins/custom.header.logo/custom.header.logo.cfg';
 $chl_cfg = is_file($chl_cfg_file) ? (parse_ini_file($chl_cfg_file) ?: []) : [];
-if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && !empty($chl_cfg['LOGOURL'])):
-  $chl_logo   = $chl_cfg['LOGOURL'];
+// Empty LOGOURL = use the logo stored on flash, served by logo.php (same lookup order).
+$chl_logo = $chl_cfg['LOGOURL'] ?? '';
+if ($chl_logo === '') {
+  foreach (['svg','png','webp','jpg','jpeg','gif'] as $chl_ext) {
+    $chl_flash = "/boot/config/plugins/custom.header.logo/logo.$chl_ext";
+    if (is_file($chl_flash)) { $chl_logo = '/plugins/custom.header.logo/logo.php?v='.filemtime($chl_flash); break; }
+  }
+}
+if (($chl_cfg['SERVICE'] ?? 'disabled') === 'enabled' && $chl_logo !== ''):
   $chl_link   = !empty($chl_cfg['LINKURL']) ? $chl_cfg['LINKURL'] : '/Dashboard';
   $chl_height = max(12, min(80, (int)($chl_cfg['HEIGHT'] ?? 28)));
   $chl_target = (($chl_cfg['NEWTAB'] ?? '0') === '1') ? '_blank' : '_self';
