@@ -64,3 +64,7 @@ and commit the `.plg` together with the page, otherwise installs fail with `bad 
 ## Author
 
 Gilles Reichert
+
+## License
+
+[MIT](LICENSE) © 2026 Gilles Reichert
