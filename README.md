@@ -6,7 +6,7 @@ No Unraid OS files are patched — the plugin uses the webGUI `Buttons` page hoo
 
 ## Features
 
-- Replace the Unraid banner logo with any image: stored on the flash drive, or any http(s) URL
+- Replace the Unraid banner logo with any image: uploaded from your computer (stored on the flash drive), or any http(s) URL
 - Configure the URL the logo links to (defaults to `/Dashboard`)
 - Adjustable logo height (default 28 px, matching the stock logo)
 - Optional open-in-new-tab behaviour
@@ -29,12 +29,13 @@ After installing, navigate to **Settings → User Preferences → Custom Header 
 | Setting | Description |
 |---|---|
 | Enable custom logo | Turn the replacement on or off |
-| Logo image URL | http(s) URL of your image. Leave empty to use the logo stored on flash (see below) |
+| Logo file | Upload an image from your computer (PNG, SVG, WebP, JPG, GIF, max 512 KB). Stored on flash, applied immediately |
+| Logo image URL | Optional http(s) URL used instead of the uploaded logo |
 | Logo links to | URL opened when clicking the logo (empty = Dashboard) |
 | Logo height | Display height in pixels (default 28) |
 | Open link in new tab | Opens the link URL in a new browser tab |
 
-**Logo on the flash drive (recommended):** copy `logo.svg`, `logo.png`, `logo.webp`, `logo.jpg` or `logo.gif` into `config/plugins/custom.header.logo/` on the `flash` share (`/boot/config/plugins/custom.header.logo/`) and leave *Logo image URL* empty. It survives reboots and plugin updates. Uninstalling the plugin deletes that folder, logo included.
+**Uploaded logo (recommended):** use the *Upload* button and leave *Logo image URL* empty. The file is saved as `logo.<ext>` in `/boot/config/plugins/custom.header.logo/`; you can also copy it there yourself through the `flash` share. It survives reboots and plugin updates. Uninstalling the plugin deletes that folder, logo included.
 
 **Suggested image size:** 320 × 56 px with a transparent background, displayed at 160 × 28 px (≈ 5.7:1 ratio).
 

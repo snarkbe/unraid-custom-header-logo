@@ -9,4 +9,5 @@ set_md5() { sed -i -E "s|(<!ENTITY $1 +\")[0-9a-f]{32}(\">)|\1$(md5sum "$2" | cu
 set_md5 md5page CustomHeaderLogo.page
 set_md5 md5hook CustomHeaderLogoHook.page
 set_md5 md5logo logo.php
+set_md5 md5upld upload.php
 grep -E '<!ENTITY md5' "$plg"
