@@ -104,21 +104,26 @@ _(Open link in a new tab)_:
     return false;
   }
 
-  // Same transport as the rest of the webGUI (jQuery), with a timeout so a request
-  // can never hang silently: every outcome ends with a message.
+  // Native XHR on purpose: the webGUI's global $.ajaxPrefilter appends
+  // "&csrf_token=..." to every jQuery POST body, which turns a FormData into the
+  // string "[object FormData]&csrf_token=..." and destroys the upload.
+  // The token goes both as a field (all 7.x) and as a header (accepted since 7.4).
+  // A timeout guarantees every outcome ends with a message.
   function post(data, done) {
     try {
       data.append('csrf_token', csrf_token);
-      $.ajax({
-        url: '/plugins/custom.header.logo/upload.php',
-        type: 'POST', data: data, processData: false, contentType: false,
-        dataType: 'json', timeout: 30000
-      }).done(function(res) {
-        done(res || { error: 'Empty response' });
-      }).fail(function(xhr, status, err) {
-        var res = xhr.responseJSON;
-        done({ error: (res && res.error) || ('HTTP ' + xhr.status + ' ' + (err || status)) });
-      });
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/plugins/custom.header.logo/upload.php');
+      xhr.setRequestHeader('X-CSRF-Token', csrf_token);
+      xhr.timeout = 30000;
+      xhr.onload = function() {
+        var res = null;
+        try { res = JSON.parse(xhr.responseText); } catch (e) {}
+        done(res || { error: 'HTTP ' + xhr.status + ': unexpected response' });
+      };
+      xhr.onerror = function() { done({ error: 'Network error' }); };
+      xhr.ontimeout = function() { done({ error: 'No response from the server (timeout)' }); };
+      xhr.send(data);
     } catch (e) {
       done({ error: 'Error: ' + e.message });
     }
