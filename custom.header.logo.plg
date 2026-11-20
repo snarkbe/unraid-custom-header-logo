@@ -3,15 +3,16 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.header.logo">
 <!ENTITY author    "Gilles Reichert">
-<!ENTITY version   "2026.11.20">
+<!ENTITY version   "2026.11.21">
 <!ENTITY launch    "Settings/CustomHeaderLogo">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/snarkbe/unraid-custom-header-logo/main">
 <!ENTITY pluginURL "&gitURL;/custom.header.logo.plg">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!-- MD5 of the downloaded files: keep in sync with ./update-md5.sh after any change -->
-<!ENTITY md5page   "049cf1b28b23f7c3cf831fd217909a8c">
+<!ENTITY md5page   "15ae8b5aac6c80c44815864f6efc8ce9">
 <!ENTITY md5logo   "e47302e60345b4a927e6ef123b6d7f51">
+<!ENTITY md5upld   "0657d83bf551cd0d079ea2db0c231a5d">
 <!ENTITY md5hook   "f47c96c9d795e96ee2e3910d58e466b5">
 ]>
 
@@ -25,6 +26,10 @@
         min="7.0.0">
 
 <CHANGES>
+###2026.11.21
+- New: upload the logo from your computer in the settings page (stored on the flash drive),
+  with a preview and a Delete button. PNG, SVG, WebP, JPG or GIF, max 512 KB.
+
 ###2026.11.20
 - Fix: works on Unraid 7.0 to 7.4. The stock logo link is now targeted directly instead of the
   version component, which no longer holds the logo on 7.0/7.1 and no longer exists on 7.4.
@@ -88,6 +93,12 @@ rm -rf &emhttp;
 <MD5>&md5logo;</MD5>
 </FILE>
 
+<!-- Handles logo uploads from the settings page (cached on flash) -->
+<FILE Name="&flash;/upload.php">
+<URL>&gitURL;/upload.php</URL>
+<MD5>&md5upld;</MD5>
+</FILE>
+
 <!-- README shown by the plugin manager -->
 <FILE Name="&emhttp;/README.md">
 <INLINE>
@@ -108,7 +119,7 @@ FLASH="/boot/config/plugins/custom.header.logo"
 EMHTTP="/usr/local/emhttp/plugins/custom.header.logo"
 CFG="$FLASH/custom.header.logo.cfg"
 mkdir -p "$FLASH" "$EMHTTP"
-cp -f "$FLASH/CustomHeaderLogo.page" "$FLASH/CustomHeaderLogoHook.page" "$FLASH/logo.php" "$EMHTTP/" || exit 1
+cp -f "$FLASH/CustomHeaderLogo.page" "$FLASH/CustomHeaderLogoHook.page" "$FLASH/logo.php" "$FLASH/upload.php" "$EMHTTP/" || exit 1
 if [ ! -f "$CFG" ]; then
   cat > "$CFG" <<'EOF'
 SERVICE="disabled"

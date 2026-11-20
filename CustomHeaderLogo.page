@@ -14,8 +14,10 @@ $chl_linkurl = $chl_cfg['LINKURL']     ?? '';
 $chl_height  = $chl_cfg['HEIGHT']      ?? '28';
 $chl_newtab  = $chl_cfg['NEWTAB']      ?? '0';
 $chl_flash   = '';
+$chl_flashv  = 0;
 foreach (['svg','png','webp','jpg','jpeg','gif'] as $chl_ext) {
-  if (is_file("/boot/config/plugins/custom.header.logo/logo.$chl_ext")) { $chl_flash = "logo.$chl_ext"; break; }
+  $chl_path = "/boot/config/plugins/custom.header.logo/logo.$chl_ext";
+  if (is_file($chl_path)) { $chl_flash = "logo.$chl_ext"; $chl_flashv = filemtime($chl_path); break; }
 }
 ?>
 
@@ -30,14 +32,24 @@ _(Enable custom logo)_:
 
 > Set to **Yes** to replace the stock Unraid logo in the top banner. Set to **No** to restore the original logo (refresh the page after applying).
 
-_(Logo image URL)_:
-: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="<?=$chl_flash ? htmlspecialchars("empty = $chl_flash on flash", ENT_QUOTES) : 'https://example.com/logo.png (empty = logo on flash)'?>">
-  <?if ($chl_flash):?><span class="green-text">&nbsp;<?=_('Flash logo found')?>: <?=htmlspecialchars($chl_flash)?></span><?endif;?>
+_(Logo file)_:
+: <span class="inline-block">
+  <img id="chl-preview" src="<?=$chl_flash ? "/plugins/custom.header.logo/logo.php?v=$chl_flashv" : ''?>" alt="" style="height:28px;width:auto;vertical-align:middle;margin-right:10px;padding:4px;border:1px solid var(--border-color, #888);border-radius:4px;<?=$chl_flash ? '' : 'display:none;'?>">
+  <span id="chl-none" style="margin-right:10px;<?=$chl_flash ? 'display:none;' : ''?>"><em>_(No logo uploaded)_</em></span>
+  <input type="file" id="chl-file" accept=".png,.svg,.webp,.jpg,.jpeg,.gif,image/png,image/svg+xml,image/webp,image/jpeg,image/gif" style="display:none">
+  <input type="button" id="chl-upload" value="_(Upload)_">
+  <input type="button" id="chl-delete" value="_(Delete)_" <?=$chl_flash ? '' : 'disabled'?>>
+  <span id="chl-msg" style="margin-left:10px"></span>
+</span>
 
-> URL of the image to display. PNG or SVG with a **transparent background** is recommended.
-> **Suggested size: 320 x 56 px** (displayed at 160 x 28 px, matching the stock logo). Any image with a roughly 5.7:1 width/height ratio will look native; the height set below constrains it.
-> **Leave empty to use a logo stored on the flash drive:** copy `logo.svg`, `logo.png`, `logo.webp`, `logo.jpg` or `logo.gif` into `/boot/config/plugins/custom.header.logo/` (on the `flash` share: `config/plugins/custom.header.logo/`). It survives reboots and plugin updates.
-> Otherwise enter any http(s) URL. If the webGUI uses HTTPS, the image URL must be HTTPS too, or the browser blocks it.
+> Upload an image from this computer: it is stored on the flash drive and survives reboots and plugin updates. Takes effect immediately, no **Apply** needed.
+> PNG, SVG, WebP, JPG or GIF, **max 512 KB**, ideally with a **transparent background**. **Suggested size: 320 x 56 px** (displayed at 160 x 28 px, matching the stock logo).
+> You can also copy `logo.png` (or `.svg`, ...) into `config/plugins/custom.header.logo/` on the `flash` share.
+
+_(Logo image URL)_:
+: <input type="text" name="LOGOURL" value="<?=htmlspecialchars($chl_logourl, ENT_QUOTES)?>" maxlength="1024" placeholder="_(Optional: empty = uploaded logo)_">
+
+> Optional: an http(s) URL to use **instead of** the uploaded logo. If the webGUI uses HTTPS, the image URL must be HTTPS too, or the browser blocks it.
 
 _(Logo links to)_:
 : <input type="text" name="LINKURL" value="<?=htmlspecialchars($chl_linkurl, ENT_QUOTES)?>" maxlength="1024" placeholder="https://example.com (empty = /Dashboard)">
@@ -66,3 +78,67 @@ _(Open link in a new tab)_:
 </form>
 
 <p><em>Changes take effect after a page refresh. Settings are stored on the flash drive and re-applied automatically at every boot.</em></p>
+
+<script>
+(function() {
+  var file = document.getElementById('chl-file');
+  var preview = document.getElementById('chl-preview');
+  var none = document.getElementById('chl-none');
+  var del = document.getElementById('chl-delete');
+  var msg = document.getElementById('chl-msg');
+
+  function say(text, ok) {
+    msg.textContent = text;
+    msg.className = ok ? 'green-text' : 'red-text';
+  }
+
+  function show(v) {
+    var src = v ? '/plugins/custom.header.logo/logo.php?v=' + v : '';
+    preview.src = src;
+    preview.style.display = v ? '' : 'none';
+    none.style.display = v ? 'none' : '';
+    del.disabled = !v;
+    // Live-update the banner when it already uses the uploaded logo.
+    var banner = document.querySelector('#chl-logo img');
+    if (banner && src && banner.src.indexOf('/plugins/custom.header.logo/logo.php') !== -1) { banner.src = src; return true; }
+    return false;
+  }
+
+  function post(data) {
+    data.append('csrf_token', csrf_token);
+    return fetch('/plugins/custom.header.logo/upload.php', {
+      method: 'POST', body: data, credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': csrf_token }
+    }).then(function(r) {
+      return r.json().catch(function() { return { error: 'HTTP ' + r.status }; });
+    });
+  }
+
+  document.getElementById('chl-upload').addEventListener('click', function() { file.click(); });
+
+  file.addEventListener('change', function(e) {
+    e.stopPropagation();
+    var f = file.files[0];
+    file.value = '';
+    if (!f) return;
+    if (f.size > 512 * 1024) { say('File too large (max 512 KB)', false); return; }
+    var data = new FormData();
+    data.append('cmd', 'upload');
+    data.append('logo', f);
+    say('Uploading...', true);
+    post(data).then(function(res) {
+      if (res.ok) say('Saved as ' + res.file + '.' + (show(res.v) ? '' : ' Refresh the page to see it in the banner.'), true);
+      else say(res.error || 'Upload failed', false);
+    }).catch(function() { say('Upload failed', false); });
+  });
+
+  del.addEventListener('click', function() {
+    var data = new FormData();
+    data.append('cmd', 'delete');
+    post(data).then(function(res) {
+      if (res.ok) { show(0); say('Logo deleted. Refresh the page to update the banner.', true); }
+      else say(res.error || 'Delete failed', false);
+    }).catch(function() { say('Delete failed', false); });
+  });
+})();
+</script>
